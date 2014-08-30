@@ -1,0 +1,56 @@
+---
+- hosts: all
+  user: root
+  tasks:
+    - name: install requied packages with apt
+      apt: name={{ item }}
+      with_items:
+        - git
+        - python-pip
+        - python-dev
+        - pkg-config
+        - libpng12-dev
+        - librsvg2-dev
+        - libx11-xcb1
+        - libcairo2
+        - libcairo2-dev
+
+    - name: clone graphite components from github
+      git: repo=https://github.com/graphite-project/{{ item }}.git dest=/tmp/{{ item }}
+      with_items:
+        - graphite-web
+        - carbon
+        - whisper
+        - ceres
+
+    - name: install graphite components
+      pip: name=/tmp/{{ item }}
+      with_items:
+        - graphite-web
+        - carbon
+        - whisper
+        - ceres
+
+    - name: download pycairo
+      shell: wget http://cairographics.org/releases/py2cairo-1.8.10.tar.gz chdir=/tmp
+
+    - name: unarchive py2cairo
+      shell: tar zxvf py2cairo-1.8.10.tar.gz chdir=/tmp
+
+    - name: install pycairo c module(configure)
+      shell: ./configure chdir=/tmp/pycairo-1.8.10
+
+    - name: install pycairo c module(make)
+      shell: make chdir=/tmp/pycairo-1.8.10
+
+    - name: install pycairo c module(make install)
+      shell: make install chdir=/tmp/pycairo-1.8.10
+
+    - name: install graphite requirements
+      pip: extra_args='--allow-all-external' requirements=/tmp/graphite-web/requirements.txt
+
+    - name: copy graphite configuration files
+      shell: cp {{ item }}.example {{ item }} chdir=/opt/graphite/conf
+      with_items:
+        - carbon.conf
+        - storage-schemas.conf
